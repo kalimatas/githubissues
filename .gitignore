@@ -3,9 +3,16 @@
 *.a
 *.so
 
+githubissues.iml
+
 # Folders
 _obj
 _test
+.idea
+bin
+pkg
+src/code.google.com/
+src/github.com/google/go-querystring/
 
 # Architecture specific extensions/prefixes
 *.[568vq]
