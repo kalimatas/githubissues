@@ -9,7 +9,8 @@ import (
 	"strings"
 	"strconv"
 
-	_"github.com/google/go-github/github"
+	"github.com/google/go-github/github"
+	"code.google.com/p/goauth2/oauth"
 )
 
 const (
@@ -22,6 +23,22 @@ var repository string
 var accessToken string
 var milestone int
 var issues string
+
+// newClient returns *github.Client
+//
+// With empty accessToken a client with not authorized access is created (for public repos).
+func newClient(accessToken string) (client *github.Client) {
+	if (accessToken == "") {
+		client = github.NewClient(nil)
+	} else {
+		transport := &oauth.Transport{
+			Token: &oauth.Token{AccessToken: accessToken},
+		}
+		client = github.NewClient(transport.Client())
+	}
+
+	return
+}
 
 func init() {
 	flag.StringVar(&owner, "owner", "", "repository owner")
@@ -57,4 +74,6 @@ func main() {
 			}
 		}
 	}
+
+	_ := newClient(accessToken)
 }
