@@ -16,7 +16,8 @@ import (
 
 const (
 	issuesSeparator = ","
-	halfString = "&frac12;"
+	halfString = "1/2SP"
+	halfStringHtml = "&frac12;SP"
 
 	mainTemplate = `
 <!DOCTYPE html>
@@ -44,6 +45,7 @@ const (
 		}
 		.description {
 			min-height: 150px;
+  			white-space: pre-wrap;
 		}
 		th, td {
 			padding: 6px;
@@ -68,7 +70,7 @@ const (
 			<td><div class="description">{{.Body}}</div></td>
 		</tr>
 		<tr>
-			<td class="left big">2SP</td>
+			<td class="left big">{{.Sp}}</td>
 			<td></td>
 		</tr>
 	</tbody>
@@ -88,25 +90,46 @@ var accessToken string
 var milestone string
 var issues string
 
+type Issue struct {
+	github.Issue
+
+	Sp string
+}
+
 type IssueManager struct {
 	client     *github.Client
 	owner      string
 	repository string
 }
 
+func (m *IssueManager) extractSpFromIssue(issue *github.Issue) (sp string) {
+	lines := strings.Split(*issue.Body, "\n")
+	if len(lines) > 0 {
+		sp = lines[len(lines) - 1]
+		if sp == halfString {
+			sp = halfStringHtml
+		}
+	}
+	return
+}
+
 // fetchIssues fetches issues by milestone from Github tracker
-func (m *IssueManager) fetchByMilestone(milestone string) ([]github.Issue, error) {
+func (m *IssueManager) fetchByMilestone(milestone string) ([]Issue, error) {
 	issues, _, err := m.client.Issues.ListByRepo(m.owner, m.repository, &github.IssueListByRepoOptions{Milestone: milestone})
 	if err != nil {
 		return nil, err
 	}
 
-	return issues, err
+	var issuesList []Issue
+	for _, issue := range issues {
+		issuesList = append(issuesList, Issue{issue, m.extractSpFromIssue(&issue)})
+	}
+	return issuesList, err
 }
 
 // fetchIssues fetches issues by numbers from Github tracker
-func (m *IssueManager) fetchByNumbers(issueList []int) ([]github.Issue, error) {
-	var issues []github.Issue
+func (m *IssueManager) fetchByNumbers(issueList []int) ([]Issue, error) {
+	var issues []Issue
 
 	for _, issueNumber := range issueList {
 		issue, _, err := m.client.Issues.Get(m.owner, m.repository, int(issueNumber))
@@ -114,13 +137,13 @@ func (m *IssueManager) fetchByNumbers(issueList []int) ([]github.Issue, error) {
 			return issues, err
 		}
 
-		issues = append(issues, *issue)
+		issues = append(issues, Issue{*issue, m.extractSpFromIssue(issue)})
 	}
 
 	return issues, nil
 }
 
-func (m *IssueManager) printHtml(issues []github.Issue) (err error) {
+func (m *IssueManager) printHtml(issues []Issue) (err error) {
 	template, err := template.New("issues").Parse(mainTemplate)
 	if err != nil {
 		return
@@ -188,7 +211,7 @@ func main() {
 		repository: repository,
 	}
 
-	var issues []github.Issue
+	var issues []Issue
 	var fetchError error
 	if len(issueList) > 0 {
 		issues, fetchError = manager.fetchByNumbers(issueList)
