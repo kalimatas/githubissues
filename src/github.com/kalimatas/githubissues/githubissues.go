@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"code.google.com/p/goauth2/oauth"
 	"github.com/google/go-github/github"
@@ -15,6 +16,69 @@ import (
 
 const (
 	issuesSeparator = ","
+	halfString = "&frac12;"
+
+	mainTemplate = `
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset='utf-8'>
+	<style>
+		* {
+			font-family: Arial, sans-serif;
+		}
+		.issue {
+			text-align: left;
+			width: 700px;
+			border: 1px solid black;
+			border-collapse: collapse;
+			margin-bottom: 20px;
+		}
+		.left {
+			width: 70px;
+			text-align: center;
+			vertical-align: top;
+		}
+		.big {
+			font-size: 25px;
+		}
+		.description {
+			min-height: 150px;
+		}
+		th, td {
+			padding: 6px;
+			border: 1px solid black;
+		}
+	</style>
+</head>
+<body>
+
+{{range .}}
+
+<table class="issue">
+	<thead>
+		<tr>
+			<th class="left big">{{.Number}}</th>
+			<th class="big">{{.Title}}</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td></td>
+			<td><div class="description">{{.Body}}</div></td>
+		</tr>
+		<tr>
+			<td class="left big">2SP</td>
+			<td></td>
+		</tr>
+	</tbody>
+</table>
+
+{{end}}
+
+</body>
+</html>
+`
 )
 
 // Command-line arguments
@@ -54,6 +118,17 @@ func (m *IssueManager) fetchByNumbers(issueList []int) ([]github.Issue, error) {
 	}
 
 	return issues, nil
+}
+
+func (m *IssueManager) printHtml(issues []github.Issue) (err error) {
+	template, err := template.New("issues").Parse(mainTemplate)
+	if err != nil {
+		return
+	}
+
+	template.Execute(os.Stdout, issues)
+
+	return
 }
 
 // newClient returns *github.Client
@@ -123,5 +198,10 @@ func main() {
 
 	if fetchError != nil {
 		panic(fmt.Sprintf("cannot fetch issues: %v", fetchError))
+	}
+
+	err := manager.printHtml(issues)
+	if err != nil {
+		panic(fmt.Sprintf("cannot print html: %v", err))
 	}
 }
