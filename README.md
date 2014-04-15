@@ -6,6 +6,11 @@ To get access to private repositories you have to generate a personal API [acces
 
 ### Install
 
+Binary is available for download from [releases](https://github.com/kalimatas/githubissues/releases/tag/v1.0) page.
+
+Or you can compile it yourself:
+
+
 ```
 git clone git@github.com:kalimatas/githubissues.git
 cd githubissues
