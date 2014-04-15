@@ -2,6 +2,8 @@
 
 Generate HTML for issues from Gitub tracker.
 
+To get access to private repositories you have to generate a personal API [access token](https://help.github.com/articles/creating-an-access-token-for-command-line-use).
+
 ### Install
 
 ```
