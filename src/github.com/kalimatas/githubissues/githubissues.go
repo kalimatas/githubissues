@@ -16,6 +16,7 @@ import (
 
 const (
 	issuesSeparator = ","
+	spIdentifier = "SP"
 	halfString = "1/2SP"
 	halfStringHtml = "&frac12;SP"
 
@@ -102,27 +103,34 @@ type IssueManager struct {
 	repository string
 }
 
-func (m *IssueManager) extractSpFromIssue(issue *github.Issue) (sp string) {
+func (m *IssueManager) extractSpFromIssue(issue *github.Issue) *Issue {
+	var sp string
+
 	lines := strings.Split(*issue.Body, "\n")
 	if len(lines) > 0 {
 		sp = lines[len(lines) - 1]
-		if sp == halfString {
-			sp = halfStringHtml
+		if strings.Contains(sp, spIdentifier) {
+			if sp == halfString {
+				sp = halfStringHtml
+			}
+			*issue.Body = strings.Join(lines[:len(lines) - 1], "\n")
+		} else {
+			sp = ""
 		}
 	}
-	return
+	return &Issue{*issue, sp}
 }
 
 // fetchIssues fetches issues by milestone from Github tracker
 func (m *IssueManager) fetchByMilestone(milestone string) ([]Issue, error) {
-	issues, _, err := m.client.Issues.ListByRepo(m.owner, m.repository, &github.IssueListByRepoOptions{Milestone: milestone})
+	issues, _, err := m.client.Issues.ListByRepo(m.owner, m.repository, &github.IssueListByRepoOptions{Milestone: milestone, State: "all"})
 	if err != nil {
 		return nil, err
 	}
 
 	var issuesList []Issue
 	for _, issue := range issues {
-		issuesList = append(issuesList, Issue{issue, m.extractSpFromIssue(&issue)})
+		issuesList = append(issuesList, *m.extractSpFromIssue(&issue))
 	}
 	return issuesList, err
 }
@@ -137,7 +145,7 @@ func (m *IssueManager) fetchByNumbers(issueList []int) ([]Issue, error) {
 			return issues, err
 		}
 
-		issues = append(issues, Issue{*issue, m.extractSpFromIssue(issue)})
+		issues = append(issues, *m.extractSpFromIssue(issue))
 	}
 
 	return issues, nil
