@@ -35,6 +35,7 @@ const (
 			border: 1px solid black;
 			border-collapse: collapse;
 			margin-bottom: 20px;
+            page-break-inside: avoid;
 		}
 		.left {
 			width: 70px;
